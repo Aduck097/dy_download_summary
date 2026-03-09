@@ -1,0 +1,52 @@
+{
+  "paths": {
+    "runs_dir": "runs"
+  },
+  "douyin": {
+    "downloader_bin": "f2",
+    "download_template": "f2 --help",
+    "cookie": "",
+    "cookie_file": "",
+    "video_extensions": [
+      ".mp4",
+      ".mov",
+      ".mkv",
+      ".webm"
+    ]
+  },
+  "ffmpeg": {
+    "path": "ffmpeg",
+    "audio_sample_rate": 16000,
+    "audio_channels": 1,
+    "audio_bitrate": "64k"
+  },
+  "oss": {
+    "access_key_id": "",
+    "access_key_secret": "",
+    "security_token": "",
+    "endpoint": "https://oss-cn-beijing.aliyuncs.com",
+    "bucket": "your-bucket-name",
+    "object_prefix": "douyin-audio",
+    "sign_url_expires_seconds": 3600,
+    "public_base_url": ""
+  },
+  "funasr": {
+    "api_key": "",
+    "submit_url": "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/transcription",
+    "task_url_template": "https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}",
+    "model": "fun-asr",
+    "poll_interval_seconds": 5,
+    "poll_timeout_seconds": 600,
+    "output_dir": "runs/funasr",
+    "parameters": {
+      "channel_id": [
+        0
+      ],
+      "language_hints": [
+        "zh",
+        "en"
+      ],
+      "diarization_enabled": false
+    }
+  }
+}

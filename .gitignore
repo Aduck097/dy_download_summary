@@ -1,0 +1,9 @@
+runs/
+logs/
+__pycache__/
+*.pyc
+config.json
+codex-project.zip
+*.db
+.idea/
+gh_*.msi
