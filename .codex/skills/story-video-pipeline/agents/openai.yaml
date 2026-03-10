@@ -1,0 +1,4 @@
+version: 1
+display_name: Story Video Pipeline
+short_description: Run and validate the Douyin-to-remake video workflow.
+default_prompt: Run or maintain the project-scoped story video pipeline, verify outputs, and keep acceptance criteria explicit.

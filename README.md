@@ -197,6 +197,62 @@ It writes one cohesive project tree under `runs/projects/<project-slug>/<timesta
 
 The TTS stage uses Bailian/Qwen TTS by default with `qwen3-tts-instruct-flash` and the `Serena` voice, then builds a shared narration track and aligned `subtitles.srt` for both video routes.
 
+## Codex Skill
+
+This repository now also includes a reusable Codex skill at [story-video-pipeline](/D:/codex/.codex/skills/story-video-pipeline).
+
+Use that skill when you want Codex to:
+
+- run the full remake workflow
+- rerun an existing project root
+- validate outputs
+- check whether subtitles, audio, and final mux artifacts are complete
+
+### Install In Another Codex
+
+If another Codex environment can access this repository locally, copy the skill folder into that environment's Codex skills directory.
+
+Windows example:
+
+```powershell
+Copy-Item `
+  "D:\codex\.codex\skills\story-video-pipeline" `
+  "$env:USERPROFILE\.codex\skills\story-video-pipeline" `
+  -Recurse -Force
+```
+
+If you cloned this repository somewhere else, replace `D:\codex` with that local path.
+
+The minimum files to copy are:
+
+- `.codex/skills/story-video-pipeline/SKILL.md`
+- `.codex/skills/story-video-pipeline/agents/openai.yaml`
+- `.codex/skills/story-video-pipeline/references/workflow.md`
+
+### Use In Another Codex
+
+After the skill is installed, ask Codex with the skill name or with an equivalent intent, for example:
+
+```text
+Use story-video-pipeline to run the Douyin remake workflow for this video.
+```
+
+Or:
+
+```text
+Use story-video-pipeline to rerun the existing project root and verify final outputs.
+```
+
+The skill expects the target workspace to contain the pipeline scripts from this repository, especially:
+
+- `scripts/story_video_project.py`
+- `scripts/douyin_pipeline.py`
+- `scripts/bailian_funasr.py`
+- `scripts/video_pipeline.py`
+- `config.json`
+
+If another repository does not already contain those scripts, install the project module first or copy the relevant project files over before using the skill.
+
 Generate image tasks from a scene plan:
 
 ```powershell
