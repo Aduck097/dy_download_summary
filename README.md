@@ -92,6 +92,7 @@ Important sections:
 - `ffmpeg`: audio conversion settings
 - `oss`: OSS credentials, bucket, endpoint, and URL generation
 - `funasr`: Bailian API key and transcription parameters
+- `qwen_image`: Qwen image generation settings
 
 The `douyin` section can also hold:
 
@@ -143,6 +144,93 @@ Output files are written under `runs/funasr/<timestamp>/` by default:
 - `task.json`: raw task status response
 - `result_N.json`: downloaded transcription result JSON
 - `result_N.txt`: extracted plain-text transcript
+- `result_N.timeline.json`: sentence-level timeline with `begin_time_ms` and `end_time_ms`
+- `result_N.srt`: subtitle file generated from sentence timestamps
+
+## Video Scene Planning
+
+The repository now also includes a first-stage text-to-video planner at [scripts/video_pipeline.py](/D:/codex/scripts/video_pipeline.py).
+
+Current scope:
+
+- read a script from `--text` or `--input-file`
+- split it into scene-sized narration chunks
+- generate `scene_plan.json` with `scene_id`, `narration`, `image_prompt`, and `duration`
+- generate `image_tasks.json` for external image generation
+- generate scene images directly with Qwen-Image
+- render a draft `output.mp4` from existing `scene_XXX.png/jpg` images with a Ken Burns style motion pass
+
+Example:
+
+```powershell
+python scripts/video_pipeline.py --config config.json plan `
+  --input-file ".\vedio.md" `
+  --output-dir ".\runs\video\demo-plan"
+```
+
+The default output directory is `runs/video/<timestamp>/`.
+
+For a project-scoped remake run that keeps download, STT, rewrite, images, renders, and comparison outputs together, use:
+
+```powershell
+python scripts/story_video_project.py --config config.json run `
+  --profile-url "https://www.douyin.com/video/7614714151727189617" `
+  --max-scenes 4
+```
+
+That command now runs this chain:
+
+- `Douyin -> STT -> summary -> rewrite -> TTS -> storyboard -> route A / route B -> final mux`
+
+It writes one cohesive project tree under `runs/projects/<project-slug>/<timestamp>/`:
+
+- `01_ingest/`
+- `02_stt/`
+- `03_summary/`
+- `04_rewrite/`
+- `05_tts/`
+- `06_storyboard/`
+- `07_route_a_qwen_ffmpeg/`
+- `08_route_b_wan_i2v/`
+- `09_final/`
+- `10_compare/`
+
+The TTS stage uses Bailian/Qwen TTS by default with `qwen3-tts-instruct-flash` and the `Serena` voice, then builds a shared narration track and aligned `subtitles.srt` for both video routes.
+
+Generate image tasks from a scene plan:
+
+```powershell
+python scripts/video_pipeline.py image-tasks `
+  --scene-plan ".\runs\video\demo-plan\scene_plan.json"
+```
+
+Generate images with Qwen-Image:
+
+```powershell
+python scripts/video_pipeline.py --config config.json generate-images `
+  --scene-plan ".\runs\video\demo-plan\scene_plan.json" `
+  --output-dir ".\runs\video\demo-images"
+```
+
+If you want to inspect requests before calling the paid API:
+
+```powershell
+python scripts/video_pipeline.py --config config.json generate-images `
+  --scene-plan ".\runs\video\demo-plan\scene_plan.json" `
+  --output-dir ".\runs\video\demo-images" `
+  --dry-run
+```
+
+Render a video from existing scene images:
+
+```powershell
+python scripts/video_pipeline.py --config config.json render `
+  --scene-plan ".\runs\video\demo-plan\scene_plan.json" `
+  --images-dir ".\runs\video\demo-plan\images" `
+  --output-dir ".\runs\video\demo-render"
+```
+
+Image filenames should follow `scene_001.png`, `scene_002.png`, or the same numbering with `.jpg/.jpeg/.webp`.
 
 ## 中文说明
 
@@ -285,3 +373,63 @@ python scripts/bailian_funasr.py --config config.json upload `
 - `task.json`：任务状态接口原始响应
 - `result_N.json`：下载得到的转写结果 JSON
 - `result_N.txt`：提取出的纯文本转写内容
+- `result_N.timeline.json`：按句保存的时间轴，包含 `begin_time_ms` 和 `end_time_ms`
+- `result_N.srt`：根据时间轴生成的字幕文件
+
+### 视频分镜规划
+
+仓库现在还增加了一个第一阶段的视频流水线入口：[scripts/video_pipeline.py](/D:/codex/scripts/video_pipeline.py)。
+
+当前这一步只负责：
+
+- 读取 `--text` 或 `--input-file` 输入脚本
+- 按分镜时长把文本拆成旁白片段
+- 输出包含 `scene_id`、`narration`、`image_prompt` 和 `duration` 的 `scene_plan.json`
+- 输出给外部文生图环节消费的 `image_tasks.json`
+- 可直接调用 Qwen-Image 生成分镜图片并下载到本地
+- 基于现有 `scene_XXX.png/jpg` 图片用 ffmpeg 合成草稿视频 `output.mp4`
+
+示例：
+
+```powershell
+python scripts/video_pipeline.py --config config.json plan `
+  --input-file ".\vedio.md" `
+  --output-dir ".\runs\video\demo-plan"
+```
+
+默认输出目录为 `runs/video/<timestamp>/`。
+
+根据分镜生成图片任务清单：
+
+```powershell
+python scripts/video_pipeline.py image-tasks `
+  --scene-plan ".\runs\video\demo-plan\scene_plan.json"
+```
+
+直接调用 Qwen-Image 出图：
+
+```powershell
+python scripts/video_pipeline.py --config config.json generate-images `
+  --scene-plan ".\runs\video\demo-plan\scene_plan.json" `
+  --output-dir ".\runs\video\demo-images"
+```
+
+如果你想先检查请求，不立刻调用计费接口：
+
+```powershell
+python scripts/video_pipeline.py --config config.json generate-images `
+  --scene-plan ".\runs\video\demo-plan\scene_plan.json" `
+  --output-dir ".\runs\video\demo-images" `
+  --dry-run
+```
+
+使用现有分镜图片渲染视频：
+
+```powershell
+python scripts/video_pipeline.py --config config.json render `
+  --scene-plan ".\runs\video\demo-plan\scene_plan.json" `
+  --images-dir ".\runs\video\demo-plan\images" `
+  --output-dir ".\runs\video\demo-render"
+```
+
+图片文件名建议使用 `scene_001.png`、`scene_002.png`，也支持同编号的 `.jpg`、`.jpeg`、`.webp`。

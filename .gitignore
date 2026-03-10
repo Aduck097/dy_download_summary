@@ -7,3 +7,6 @@ codex-project.zip
 *.db
 .idea/
 gh_*.msi
+tmp-module-test/
+dy-*/
+r761/

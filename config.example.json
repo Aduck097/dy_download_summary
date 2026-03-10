@@ -48,5 +48,60 @@
       ],
       "diarization_enabled": false
     }
+  },
+  "video": {
+    "output_dir": "runs/video",
+    "target_scene_seconds": 5,
+    "min_scene_seconds": 4,
+    "max_scene_seconds": 6,
+    "chars_per_second": 4.5,
+    "style": "cinematic lighting, realistic detail, unified visual style",
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "codec": "libx264",
+    "transition_seconds": 0.35
+  },
+  "qwen_text": {
+    "api_key": "",
+    "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "model": "qwen-plus",
+    "temperature": 0.6
+  },
+  "tts": {
+    "api_key": "",
+    "generation_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+    "model": "qwen3-tts-instruct-flash",
+    "voice": "Serena",
+    "language_type": "Chinese",
+    "format": "wav",
+    "sample_rate": 24000,
+    "instructions": "请用温柔、自然、好听的年轻女声进行口语化讲述，像在耐心地跟观众聊天，不要播音腔。",
+    "optimize_instructions": true,
+    "silence_padding_seconds": 0.35
+  },
+  "qwen_image": {
+    "api_key": "",
+    "generation_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+    "model": "qwen-image-2.0-pro",
+    "size": "1920*1080",
+    "image_count": 1,
+    "retry_attempts": 4,
+    "retry_delay_seconds": 8,
+    "prompt_extend": true,
+    "watermark": false,
+    "negative_prompt": "low resolution, blurry details, distorted anatomy, extra fingers, oversaturated colors, artificial looking skin, messy composition, unreadable text"
+  },
+  "wan_video": {
+    "api_key": "",
+    "generation_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis",
+    "task_url_template": "https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}",
+    "model": "wan2.6-i2v-flash",
+    "resolution": "720P",
+    "prompt_extend": true,
+    "watermark": false,
+    "audio": false,
+    "poll_interval_seconds": 8,
+    "poll_timeout_seconds": 1800
   }
 }

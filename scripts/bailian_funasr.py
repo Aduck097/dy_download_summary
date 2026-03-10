@@ -225,6 +225,89 @@ def extract_text(result_json: dict[str, Any]) -> str:
     return "\n".join(chunks).strip()
 
 
+def normalize_words(words: Any) -> list[dict[str, Any]]:
+    if not isinstance(words, list):
+        return []
+    normalized: list[dict[str, Any]] = []
+    for item in words:
+        if not isinstance(item, dict):
+            continue
+        normalized.append(
+            {
+                "begin_time_ms": item.get("begin_time"),
+                "end_time_ms": item.get("end_time"),
+                "text": item.get("text", ""),
+                "punctuation": item.get("punctuation", ""),
+            }
+        )
+    return normalized
+
+
+def extract_timeline(result_json: dict[str, Any]) -> list[dict[str, Any]]:
+    transcripts = result_json.get("transcripts") or []
+    timeline: list[dict[str, Any]] = []
+    for transcript_index, transcript in enumerate(transcripts, start=1):
+        if not isinstance(transcript, dict):
+            continue
+        sentence_candidates: list[dict[str, Any]] = []
+        for key in ("sentences", "sentence_list", "segments", "utterances"):
+            value = transcript.get(key)
+            if isinstance(value, list):
+                sentence_candidates = [item for item in value if isinstance(item, dict)]
+                break
+        if not sentence_candidates and {"begin_time", "end_time", "text"} <= set(transcript):
+            sentence_candidates = [transcript]
+        for sentence_index, sentence in enumerate(sentence_candidates, start=1):
+            begin_time = sentence.get("begin_time")
+            end_time = sentence.get("end_time")
+            text = sentence.get("text")
+            if not isinstance(text, str) or not text.strip():
+                continue
+            timeline.append(
+                {
+                    "transcript_index": transcript_index,
+                    "channel_id": transcript.get("channel_id"),
+                    "sentence_index": sentence_index,
+                    "sentence_id": sentence.get("sentence_id"),
+                    "begin_time_ms": begin_time,
+                    "end_time_ms": end_time,
+                    "duration_ms": (end_time - begin_time) if isinstance(begin_time, int) and isinstance(end_time, int) else None,
+                    "text": text.strip(),
+                    "words": normalize_words(sentence.get("words")),
+                }
+            )
+    return timeline
+
+
+def format_srt_timestamp(milliseconds: int) -> str:
+    if milliseconds < 0:
+        milliseconds = 0
+    hours, remainder = divmod(milliseconds, 3_600_000)
+    minutes, remainder = divmod(remainder, 60_000)
+    seconds, millis = divmod(remainder, 1000)
+    return f"{hours:02}:{minutes:02}:{seconds:02},{millis:03}"
+
+
+def render_srt(timeline: list[dict[str, Any]]) -> str:
+    blocks: list[str] = []
+    for index, item in enumerate(timeline, start=1):
+        begin_time = item.get("begin_time_ms")
+        end_time = item.get("end_time_ms")
+        text = item.get("text")
+        if not isinstance(begin_time, int) or not isinstance(end_time, int) or not isinstance(text, str):
+            continue
+        blocks.append(
+            "\n".join(
+                [
+                    str(index),
+                    f"{format_srt_timestamp(begin_time)} --> {format_srt_timestamp(end_time)}",
+                    text.strip(),
+                ]
+            )
+        )
+    return "\n\n".join(blocks).strip()
+
+
 def sanitize_filename(name: str) -> str:
     cleaned = "".join(char if char not in '<>:"/\\|?*' else "_" for char in name)
     return cleaned.strip().replace(" ", "_") or "audio"
@@ -309,6 +392,19 @@ def save_task_artifacts(output_dir: Path, task_payload: dict[str, Any], download
         download_url(transcription_url, json_path)
         result_payload = json.loads(json_path.read_text(encoding="utf-8"))
         write_text(output_dir / f"result_{index}.txt", extract_text(result_payload))
+        timeline = extract_timeline(result_payload)
+        write_json(
+            output_dir / f"result_{index}.timeline.json",
+            {
+                "file_url": result_payload.get("file_url"),
+                "transcript_count": len(result_payload.get("transcripts") or []),
+                "sentence_count": len(timeline),
+                "timeline": timeline,
+            },
+        )
+        srt_content = render_srt(timeline)
+        if srt_content:
+            write_text(output_dir / f"result_{index}.srt", srt_content)
 
 
 def command_submit(args: argparse.Namespace, config: dict[str, Any]) -> int:

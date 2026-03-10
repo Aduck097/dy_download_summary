@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cursor Subagent Orchestrator"
+  short_description: "Delegate tasks to Cursor subagents"
+  default_prompt: "Use this skill when the user wants Codex to coordinate project Cursor subagents, prepare scoped assignments, and validate the resulting work."

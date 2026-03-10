@@ -11,6 +11,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -33,6 +34,7 @@ class RunContext:
     audio_dir: Path
     manifest_path: Path
     source_ref: str
+    download_dir: Path | None = None
 
 
 def slugify(value: str) -> str:
@@ -47,6 +49,13 @@ def shorten_stem(value: str, limit: int = 20) -> str:
     return cleaned[:limit].rstrip("._ ") or "audio"
 
 
+def shorten_filename(name: str, index: int, limit: int = 48) -> str:
+    path = Path(name)
+    suffix = path.suffix.lower() or ".mp4"
+    stem = shorten_stem(path.stem, limit=limit)
+    return f"video_{index:03d}_{stem}{suffix}"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Fetch Douyin videos and convert them to MP3.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -58,6 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--cookie", help="Raw Douyin cookie string for the downloader.")
     run.add_argument("--cookie-file", type=Path, help="Path to a cookie file for the downloader.")
     run.add_argument("--runs-dir", type=Path, default=Path("runs"), help="Base directory for pipeline runs.")
+    run.add_argument("--output-dir", type=Path, help="Explicit output directory for this run.")
     run.add_argument("--run-name", help="Optional custom run name. Defaults to a slug based on input.")
     run.add_argument("--video-dir", type=Path, help="Use an existing video directory instead of downloaded output.")
     run.add_argument("--skip-download", action="store_true", help="Skip downloader execution and use --video-dir or an existing run videos directory.")
@@ -93,6 +103,7 @@ def resolve_config(args: argparse.Namespace) -> dict[str, Any]:
         "cookie",
         "cookie_file",
         "runs_dir",
+        "output_dir",
         "run_name",
         "video_dir",
         "skip_download",
@@ -120,12 +131,16 @@ def ensure_dependency(command_name: str) -> str:
 
 def create_run_context(config: dict[str, Any]) -> RunContext:
     source_ref = config.get("profile_url") or config.get("sec_user_id") or "local-video-dir"
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    suffix = slugify(config.get("run_name") or source_ref)
-    run_dir = Path(config.get("runs_dir", "runs")) / f"{stamp}-{suffix}"
+    explicit_output_dir = config.get("output_dir")
+    if explicit_output_dir:
+        run_dir = Path(explicit_output_dir)
+    else:
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        suffix = slugify(config.get("run_name") or source_ref)
+        run_dir = Path(config.get("runs_dir", "runs")) / f"{stamp}-{suffix}"
     videos_dir = run_dir / "videos"
     audio_dir = run_dir / "audio"
-    run_dir.mkdir(parents=True, exist_ok=False)
+    run_dir.mkdir(parents=True, exist_ok=bool(explicit_output_dir))
     videos_dir.mkdir(parents=True, exist_ok=True)
     audio_dir.mkdir(parents=True, exist_ok=True)
     return RunContext(
@@ -135,6 +150,12 @@ def create_run_context(config: dict[str, Any]) -> RunContext:
         manifest_path=run_dir / "manifest.json",
         source_ref=source_ref,
     )
+
+
+def create_download_workspace(config: dict[str, Any]) -> Path:
+    runs_dir = Path(config.get("runs_dir", "runs")).resolve()
+    workspace_root = runs_dir.parent
+    return Path(tempfile.mkdtemp(prefix="dy-", dir=str(workspace_root)))
 
 
 def build_download_command(config: dict[str, Any], run: RunContext) -> list[str]:
@@ -153,7 +174,7 @@ def build_download_command(config: dict[str, Any], run: RunContext) -> list[str]
         "cookie": cookie,
         "cookie_file": str(config.get("cookie_file", "")),
         "run_dir": str(run.run_dir.resolve()),
-        "videos_dir": str(run.videos_dir.resolve()),
+        "videos_dir": str((run.download_dir or run.videos_dir).resolve()),
     }
     try:
         rendered = template.format(**placeholders)
@@ -175,6 +196,8 @@ def run_subprocess(command: list[str], cwd: Path | None = None) -> subprocess.Co
         command,
         cwd=str(cwd) if cwd else None,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         check=False,
     )
@@ -206,6 +229,24 @@ def convert_video(ffmpeg_path: str, video_path: Path, audio_path: Path, sample_r
 def write_manifest(path: Path, payload: dict[str, Any]) -> None:
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
+
+
+def materialize_downloaded_videos(source_dir: Path, target_dir: Path, extensions: list[str]) -> list[dict[str, Any]]:
+    staged_videos = discover_videos(source_dir, extensions)
+    copied: list[dict[str, Any]] = []
+    for index, staged_path in enumerate(staged_videos, start=1):
+        target_name = shorten_filename(staged_path.name, index)
+        target_path = target_dir / target_name
+        shutil.copy2(staged_path, target_path)
+        copied.append(
+            {
+                "staged_path": str(staged_path.resolve()),
+                "path": str(target_path.resolve()),
+                "name": target_path.name,
+                "size_bytes": target_path.stat().st_size,
+            }
+        )
+    return copied
 
 
 def run_pipeline(config: dict[str, Any]) -> int:
@@ -247,8 +288,10 @@ def run_pipeline(config: dict[str, Any]) -> int:
     if not skip_download:
         downloader_bin = config.get("downloader_bin", "f2")
         config["downloader_bin"] = ensure_dependency(downloader_bin)
+        run.download_dir = create_download_workspace(config)
         command = build_download_command(config, run)
         manifest["download"]["command"] = command
+        manifest["download"]["staging_dir"] = str(run.download_dir.resolve())
         result = run_subprocess(command, cwd=run.run_dir)
         manifest["download"]["returncode"] = result.returncode
         manifest["download"]["stdout"] = result.stdout
@@ -256,6 +299,7 @@ def run_pipeline(config: dict[str, Any]) -> int:
         if result.returncode != 0:
             write_manifest(run.manifest_path, manifest)
             raise PipelineError(f"Downloader failed with exit code {result.returncode}. See manifest.json for stderr.")
+        manifest["download"]["materialized_videos"] = materialize_downloaded_videos(run.download_dir, run.videos_dir, video_extensions)
 
     source_video_dir = video_dir_override or run.videos_dir
     if not source_video_dir.exists():
@@ -263,14 +307,17 @@ def run_pipeline(config: dict[str, Any]) -> int:
         raise PipelineError(f"Video directory does not exist: {source_video_dir}")
 
     videos = discover_videos(source_video_dir, video_extensions)
-    manifest["videos"] = [
-        {
-            "path": str(path.resolve()),
-            "name": path.name,
-            "size_bytes": path.stat().st_size,
-        }
-        for path in videos
-    ]
+    if not skip_download and manifest["download"].get("materialized_videos"):
+        manifest["videos"] = list(manifest["download"]["materialized_videos"])
+    else:
+        manifest["videos"] = [
+            {
+                "path": str(path.resolve()),
+                "name": path.name,
+                "size_bytes": path.stat().st_size,
+            }
+            for path in videos
+        ]
 
     if not skip_convert:
         ffmpeg_path = ensure_dependency(config.get("ffmpeg_path", "ffmpeg"))
