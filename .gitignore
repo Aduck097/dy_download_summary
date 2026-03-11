@@ -10,3 +10,13 @@ gh_*.msi
 tmp-module-test/
 dy-*/
 r761/
+.venv-web/
+*.deb
+codex-project-*.zip
+config.json~
+*.bak
+docs/story_video_project.copy.py
+docs/__write_test.tmp
+node_modules/
+dist/
+.vite/

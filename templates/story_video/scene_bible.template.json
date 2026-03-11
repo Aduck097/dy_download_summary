@@ -1,0 +1,42 @@
+{
+  "project_title": "douyin-remake-demo",
+  "global_style": {
+    "visual_style": "cinematic realism",
+    "palette": "warm beige, soft wood brown, muted green accents",
+    "lighting": "late afternoon window light, soft contrast",
+    "lens_bias": "35mm to 50mm natural perspective",
+    "texture": "clean but lived-in"
+  },
+  "scenes": [
+    {
+      "scene_id": "office_corner_day",
+      "display_name": "办公室角落日景",
+      "location_prompt": "small business office corner with wooden desk, laptop, notebook, glass water cup, soft daylight through side window",
+      "time_of_day": "afternoon",
+      "must_keep": [
+        "wooden desk",
+        "soft side daylight",
+        "warm realistic interior",
+        "same work setting across adjacent shots"
+      ],
+      "allowed_variations": [
+        "camera angle changes",
+        "framing distance changes",
+        "slight hand prop changes"
+      ],
+      "prop_lock": [
+        "laptop",
+        "notebook",
+        "water glass"
+      ],
+      "transition_role": "main talking location",
+      "reference_images": [
+        {
+          "label": "master_frame",
+          "path": "references/scenes/office_corner_day/master.png",
+          "purpose": "space layout lock"
+        }
+      ]
+    }
+  ]
+}

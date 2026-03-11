@@ -1,0 +1,49 @@
+{
+  "project_title": "douyin-remake-demo",
+  "style_direction": "cinematic realism, warm natural palette, grounded social media storytelling",
+  "characters": [
+    {
+      "character_id": "protagonist_01",
+      "role": "primary narrator",
+      "display_name": "创业讲述者",
+      "identity_prompt": "Chinese woman in her late 20s, gentle face, medium-length dark hair, natural makeup, expressive eyes, realistic skin texture",
+      "age_range": "26-32",
+      "gender_presentation": "female",
+      "body_framing_defaults": [
+        "medium close-up",
+        "waist-up"
+      ],
+      "wardrobe_lock": {
+        "top": "cream knit cardigan",
+        "inner": "light beige blouse",
+        "bottom": "not usually visible",
+        "accessories": [
+          "simple small earrings"
+        ]
+      },
+      "voice_persona": "warm, calm, conversational, trustworthy",
+      "performance_notes": [
+        "speak like sharing real experience",
+        "avoid exaggerated expression",
+        "subtle hand movement is allowed"
+      ],
+      "hard_constraints": [
+        "do not change hair color",
+        "do not switch wardrobe inside the same sequence",
+        "maintain the same facial structure and age impression"
+      ],
+      "reference_images": [
+        {
+          "label": "front_portrait",
+          "path": "references/characters/protagonist_01/front.png",
+          "purpose": "face identity lock"
+        },
+        {
+          "label": "half_body",
+          "path": "references/characters/protagonist_01/half_body.png",
+          "purpose": "wardrobe and posture lock"
+        }
+      ]
+    }
+  ]
+}

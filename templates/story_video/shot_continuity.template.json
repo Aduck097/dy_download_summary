@@ -1,0 +1,52 @@
+{
+  "project_title": "douyin-remake-demo",
+  "sequence_goal": "condense the source message into a coherent spoken remake with stable visual continuity",
+  "shots": [
+    {
+      "shot_id": 1,
+      "beat_id": 1,
+      "character_id": "protagonist_01",
+      "scene_id": "office_corner_day",
+      "narration": "这两年做生意的人，最明显的感受就是累，不只是难，而且越来越卷。",
+      "shot_role": "establishing intro",
+      "visual_goal": "introduce the speaker and lock the base location",
+      "continuity_anchor": "same woman, same cardigan, same office corner, afternoon light, calm direct-to-camera delivery",
+      "prev_visual_state": "start of sequence",
+      "current_visual_state": "woman seated at desk, looking into camera, laptop half-open on table",
+      "next_visual_state": "lean slightly forward as she shifts from opening to analysis",
+      "camera_plan": {
+        "framing": "medium shot",
+        "angle": "eye level",
+        "move": "drift_center",
+        "lens_feel": "natural 35mm",
+        "energy": "calm"
+      },
+      "transition_out": "dissolve",
+      "image_prompt_addendum": "direct to camera, natural posture, realistic office details",
+      "video_prompt_addendum": "subtle breathing, natural blink, slight shoulder shift"
+    },
+    {
+      "shot_id": 2,
+      "beat_id": 2,
+      "character_id": "protagonist_01",
+      "scene_id": "office_corner_day",
+      "narration": "很多人看起来还在忙，其实不是在增长，而是在被环境推着走。",
+      "shot_role": "analysis push",
+      "visual_goal": "keep the same space while increasing urgency",
+      "continuity_anchor": "same woman, same desk, same daylight, only posture and framing advance",
+      "prev_visual_state": "woman seated at desk, laptop half-open on table",
+      "current_visual_state": "woman slightly leaning in, one hand near notebook, expression more focused",
+      "next_visual_state": "hold eye contact, then soften for conclusion",
+      "camera_plan": {
+        "framing": "medium close-up",
+        "angle": "eye level",
+        "move": "zoom_in",
+        "lens_feel": "50mm intimate",
+        "energy": "focused"
+      },
+      "transition_out": "cut",
+      "image_prompt_addendum": "same wardrobe and background, tighter framing, stronger focus",
+      "video_prompt_addendum": "small hand movement, slight head nod, natural speaking rhythm"
+    }
+  ]
+}
